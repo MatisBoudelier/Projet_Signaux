@@ -1,0 +1,59 @@
+---
+title: "Taxi_Traffic_NYC"
+author: "Matis Boudelier"
+date: "2026-11-05"
+output: html_document
+---
+
+### Chargement des packages
+
+```{r}
+# 1. Installer le package si nécessaire
+install.packages("mosaicData")
+install.packages("fda")
+install.packages("tidyfun")
+install.packages("viridis")
+install.packages("tidyverse")
+install.packages("RColorBrewer")
+```
+
+```{r setup, include=FALSE}
+library(fda)
+library(tidyfun)
+library(viridis)
+library(tidyverse)
+library(RColorBrewer)
+library(mosaicData)
+```
+
+
+
+### Chargement des données
+```{r}
+df = read_csv("TaxiTraffic.csv")
+```
+
+```{r}
+data <- df |>
+  select(-`...1`) |>
+  separate(col = `timestamp`, into = c("Day", "Hour"), sep = " ") |>
+  mutate(
+    Hour = if_else(is.na(Hour) | Hour == "", "00:00:00", Hour)
+  )
+summary(data)
+head(data)
+```
+
+```{r}
+data$Hour_posix <- as.POSIXct(paste("1970-01-01", data$Hour), format = "%Y-%m-%d %H:%M:%S")
+
+data$Days_factor <- as.factor(data$Day)
+colors <- as.numeric(data$Days_factor)
+#plot(data$Hour_posix[1:48], data$value[1:48], col=colors[1:48])
+
+# Tracer le plot sans l'axe X par défaut
+plot(data$Hour_posix, data$value, col = colors, xaxt = "n", xlab = "Heure", ylab = "Valeur")
+
+# Ajouter un axe X personnalisé avec uniquement les heures (ex: toutes les 3 heures)
+axis.POSIXct(1, at = seq(min(data$Hour_posix), max(data$Hour_posix), by = "1 hour"), format = "%H:%M:%S")
+```
