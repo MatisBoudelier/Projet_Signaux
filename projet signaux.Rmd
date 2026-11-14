@@ -103,7 +103,9 @@ axis.POSIXct(1, at = seq(min(day$Hour_posix), max(day$Hour_posix), by = "1 hour"
 title(paste("Nombre de passagers au fil de la journée du", day$Day[1], day$Month_char[1], day$Year[1]))
 ```
 
-Nous avons bien des données fonctionnelles pour chaque journée avec des valeurs hétérogènes au fil des heures. Il sera intéressant de comparer les journées en fonction du nombre de passagers sur des tranches horaires (entre minuit et 6h puis entre 6h et 16h et entre 16h et minuit). Regardons maintenant sur toutes les journées.
+Nous avons bien des données fonctionnelles pour chaque journée avec des valeurs hétérogènes au fil des heures.
+Il sera intéressant de comparer les journées en fonction du nombre de passagers sur des tranches horaires (entre minuit et 6h puis entre 6h et 16h
+et entre 16h et minuit). Regardons maintenant sur toutes les journées.
 
 
 ### 2.Couleur par jour
@@ -118,7 +120,9 @@ axis.POSIXct(1, at = seq(min(data$Hour_posix), max(data$Hour_posix), by = "1 hou
 title("Nombre de passagers au fil de la journée (couleur par jour)")
 ```
 
-On remarque une forme partagée par le majorité des journées : Il semble y avoir plus de personnes qui prend un taxi l'après-midi (entre 12h et 20h) que le reste de la journée. Comparons, si possible par mois.
+On remarque une forme partagée par le majorité des journées :
+Il semble y avoir plus de personnes qui prend un taxi l'après-midi (entre 12h et 20h) que le reste de la journée.
+Comparons, si possible par mois.
 
 
 CHUNCK SUIVANT PEUT-ÊTRE A ENLEVER 
@@ -164,7 +168,8 @@ for (m in levels(data$Month_char)) {
 par(mfrow = c(1, 1))
 ```
 
-A première vue, on peut voir une forme similaire pour la majorité de chaque journée de chaque mois mais avec une petite baisse globale sur les mois d'hiver. Ce sera une analyse intéressante à faire dans ce projet.
+A première vue, on peut voir une forme similaire pour la majorité de chaque journée de chaque mois
+mais avec une petite baisse globalesur les mois d'hiver. Ce sera une analyse intéressante à faire dans ce projet.
 
 
 Commençons par un lissage des données par Moindres Carrés pénalisés.
