@@ -6,6 +6,7 @@ output: html_document
 ---
 
 ### Chargement des packages
+
 ```{r}
 # 1. Installer le package si nécessaire
 install.packages("mosaicData")
@@ -26,7 +27,10 @@ library(mosaicData)
 ```
 
 
+Dans ce projet d'analyse de données fonctionnelles, nous allons étudiés le jeu de données NYC Taxi Traffic provenant de la Commission des taxis et limousines de New York et répertoriant le nombre total de passagers de taxi par tranches de 30 minutes de minuit à 23h30 (48 points de calcul), chaque jour, du 1er Juillet 2014 au 31 Janvier 2015 (250 jours au total).
+
 ## Chargement des données
+
 ```{r}
 df = read_csv("TaxiTraffic.csv")
 ```
@@ -41,24 +45,20 @@ length(unique(as.Date(df$timestamp)))
 # 215 jours analysés
 ```
 
-
-Dans ce projet d'analyse de données fonctionnelles, nous allons étudiés le jeu de données NYC Taxi Traffic
-provenant de la Commission des taxis et limousines de New York et répertoriant le nombre total de passagers de taxi
-par tranches de 30 minutes de minuit à 23h30 (48 points de calcul), chaque jour, du 1er Juillet 2014 au 31 Janvier 2015 (250 jours au total).
-
-Il n'y a que 2 variables :
-- `timestamp` : La date et l'heure de la course (heure sur chaque demi-heure)
-- `value` : Le nombre de passagers dans toute la ville à cette heure
-
+Il n'y a que 2 variables (intéressantes) :
+- `timestamp` : La date et l'horaire (chaque demi-heure) de la course 
+- `value` : Le nombre de passagers dans toute la ville à cette date-horaire
 
 
 ## Nettoyage
+
 - Séparation de la variable `timestamp` en `Year`, `Month`, `Day` et `Hour`.
-- Ajout de l'heure '00:00:00' aux lignes correspondantes à cette heure car le chargement des données a transformé en NA.
+- Ajout de l'heure '00:00:00' aux lignes correspondantes car le chargement des données a transformé la valeur en NA.
 
 Pour faciliter les analyses et graphiques :
 - Ajout de la variable `Hour_posix` pour avoir la vraie heure chronologique.
-- Ajout des variable `Year`, `Month_factor` et `Day` avec les jours variables catégorielles.
+- Ajout de la variable `Month_char` avec les noms des mois en variable catégorielles.
+- Transformation des variable `Year`, `Month` et `Day` en variables catégorielles.
 
 
 ```{r}
@@ -66,7 +66,7 @@ data <- df |>
   select(-`...1`) |>
   separate(col = `timestamp`, into = c("Date", "Hour"), sep = " ", fill="right") |>
   mutate(
-    Month_factor = format(as.Date(Date), "%B")
+    Month_char = format(as.Date(Date), "%B")
   ) |>
   separate(col = `Date`, into = c("Year", "Month", "Day"), sep = "-") |>
   mutate(
@@ -76,9 +76,9 @@ data <- df |>
 data$Hour_posix <- as.POSIXct(paste("1970-01-01", data$Hour), format = "%Y-%m-%d %H:%M:%S")
 
 data$Year <- as.factor(data$Year)
-#data$Month_factor <- as.factor(data$Month_factor)
+data$Month <- as.factor(data$Month)
 mois_ordre <- c("juillet", "août", "septembre", "octobre", "novembre", "décembre", "janvier")
-data$Month_factor <- factor(data$Month_factor, levels = mois_ordre)
+data$Month_char <- factor(data$Month_char, levels = mois_ordre)
 data$Day <- as.factor(data$Day)
 ```
 
@@ -88,9 +88,11 @@ head(data)
 ```
 
 
-## Graphiques
 
-### Affichage d'une journée
+## Graphiques de présentation
+
+### 1.Affichage d'une journée
+
 ```{r}
 i <- 127
 day_start <- 1+(i-1)*48
@@ -98,10 +100,14 @@ day_end <- i*48
 day <- data[day_start:day_end,]
 plot(day$Hour_posix, day$value, xaxt = "n", xlab = "Heure", ylab = "Nombre de passagers")
 axis.POSIXct(1, at = seq(min(day$Hour_posix), max(day$Hour_posix), by = "1 hour"), format = "%H:%M:%S")
-title(paste("Nombre de passagers au fil de la journée du", day$Day[1], day$Month_factor[1], day$Year[1]))
+title(paste("Nombre de passagers au fil de la journée du", day$Day[1], day$Month_char[1], day$Year[1]))
 ```
 
-### Couleur par jour
+Nous avons bien des données fonctionnelles pour chaque journée avec des valeurs hétérogènes au fil des heures. Il sera intéressant de comparer les journées en fonction du nombre de passagers sur des tranches horaires (entre minuit et 6h puis entre 6h et 16h et entre 16h et minuit). Regardons maintenant sur toutes les journées.
+
+
+### 2.Couleur par jour
+
 ```{r}
 colors_day <- as.numeric(data$Day)
 #plot(data$Hour_posix[1:48], data$value[1:48], col=colors[1:48])
@@ -112,17 +118,18 @@ axis.POSIXct(1, at = seq(min(data$Hour_posix), max(data$Hour_posix), by = "1 hou
 title("Nombre de passagers au fil de la journée (couleur par jour)")
 ```
 
-On remarque tout d'abord que le nombre de passagers diffère au fil de la journée :
-Il semble  y avoir plus de personnes qui prend un taxi l'après-midi (entre 12h et 20h) que le reste de la journée.
+On remarque une forme partagée par le majorité des journées : Il semble y avoir plus de personnes qui prend un taxi l'après-midi (entre 12h et 20h) que le reste de la journée. Comparons, si possible par mois.
 
 
-### Couleur par mois
+CHUNCK SUIVANT PEUT-ÊTRE A ENLEVER 
+### 3.Couleur par mois
+
 ```{r}
-plot(data$Hour_posix, data$value, col = data$Month_factor, xaxt = "n", xlab = "Heure", ylab = "Nombre de passagers")
+plot(data$Hour_posix, data$value, col = data$Month_char, xaxt = "n", xlab = "Heure", ylab = "Nombre de passagers")
 axis.POSIXct(1, at = seq(min(data$Hour_posix), max(data$Hour_posix), by = "1 hour"), format = "%H:%M:%S")
 legend("topright",                                     # Position ("topright", "bottomleft", "center", etc.)
-       legend = levels(data$Month_factor),        # Le texte des catégories
-       col = seq_along(levels(data$Month_factor)),# Les couleurs utilisées
+       legend = levels(data$Month_char),        # Le texte des catégories
+       col = seq_along(levels(data$Month_char)),# Les couleurs utilisées
        pch = 19,
        horiz = TRUE,                          # <-- MET LA LÉGENDE À L'HORIZONTALE
        cex = 0.7
@@ -132,14 +139,15 @@ title("Nombre de passagers au fil de la journée (couleur par mois)")
 
 
 ### Graphique pour chaque mois
+
 ```{r}
 # Diviser la fenêtre graphique en une grille (3 lignes x 4 colonnes)
 par(mfrow = c(3, 3), mar = c(2, 2, 2, 1))
 
-for (m in levels(data$Month_factor)) {
+for (m in levels(data$Month_char)) {
   
   # Filtrer les données pour le mois en cours
-  subset_data <- subset(data, Month_factor == m)
+  subset_data <- subset(data, Month_char == m)
   
   # Tracer le graphique du mois (seulement s'il y a des données)
   if(nrow(subset_data) > 0) {
@@ -155,3 +163,8 @@ for (m in levels(data$Month_factor)) {
 # 3. Remettre l'affichage graphique par défaut (1 seul graphique par écran)
 par(mfrow = c(1, 1))
 ```
+
+A première vue, on peut voir une forme similaire pour la majorité de chaque journée de chaque mois mais avec une petite baisse globale sur les mois d'hiver. Ce sera une analyse intéressante à faire dans ce projet.
+
+
+Commençons par un lissage des données par Moindres Carrés pénalisés.
