@@ -1,0 +1,6 @@
+mosaicData
+fda
+tidyfun
+viridis
+tidyverse
+RColorBrewer
