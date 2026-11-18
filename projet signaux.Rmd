@@ -7,16 +7,6 @@ output: html_document
 
 ### Chargement des packages
 
-```{r}
-# 1. Installer le package si nécessaire
-install.packages("mosaicData")
-install.packages("fda")
-install.packages("tidyfun")
-install.packages("viridis")
-install.packages("tidyverse")
-install.packages("RColorBrewer")
-```
-
 ```{r setup, include=FALSE}
 library(fda)
 library(tidyfun)
@@ -168,6 +158,7 @@ for (m in levels(data$Month_char)) {
 
 # 3. Remettre l'affichage graphique par défaut (1 seul graphique par écran)
 par(mfrow = c(1, 1))
+
 ```
 
 A première vue, on peut voir une forme similaire pour la majorité de chaque journée de chaque mois
