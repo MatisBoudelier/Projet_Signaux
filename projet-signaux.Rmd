@@ -1,21 +1,14 @@
 ---
 title: "Taxi_Traffic_NYC"
-author: "Matis Boudelier"
+author: "Matis Boudelier and "
 date: "2026-11-05"
 output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ### Chargement des packages
-
-```{r, eval=FALSE}
-# 1. Installer le package si nécessaire
-install.packages("mosaicData")
-install.packages("fda") 
-install.packages("tidyfun")
-install.packages("viridis")
-install.packages("tidyverse")
-install.packages("RColorBrewer")
-```
 
 ```{r setup, include=FALSE}
 library(fda)
@@ -24,12 +17,15 @@ library(viridis)
 library(tidyverse)
 library(RColorBrewer)
 library(mosaicData)
+library(lubridate)
 ```
 
-
-Dans ce projet d'analyse de données fonctionnelles, nous allons étudiés le jeu de données NYC Taxi Traffic provenant
-de la Commission des taxis et limousines de New York et répertoriant le nombre total de passagers de taxi par tranches de 30 minutes,
-de minuit à 23h30 (48 points de calcul), chaque jour, du 1er Juillet 2014 au 31 Janvier 2015 (250 jours au total).
+Dans ce projet d'analyse de données fonctionnelles, nous allons étudiés
+le jeu de données NYC Taxi Traffic provenant de la Commission des taxis
+et limousines de New York et répertoriant le nombre total de passagers
+de taxi par tranches de 30 minutes, de minuit à 23h30 (48 points de
+calcul), chaque jour, du 1er Juillet 2014 au 31 Janvier 2015 (215 jours
+au total).
 
 ## Chargement des données
 
@@ -47,49 +43,47 @@ length(unique(as.Date(df$timestamp)))
 # 215 jours analysés
 ```
 
-Il n'y a que 2 variables (intéressantes) :
-- `timestamp` : La date et l'horaire (chaque demi-heure) de la course 
-- `value` : Le nombre de passagers dans toute la ville à cette date-horaire
-
+Il n'y a que 2 variables (intéressantes) : - `timestamp` : La date et
+l'horaire (chaque demi-heure) de la course (format datetime) - `value` :
+Le nombre de passagers dans toute la ville à cette date-horaire (format
+numeric)
 
 ## Nettoyage
 
-- Séparation de la variable `timestamp` en `Year`, `Month`, `Day` et `Hour`.
-- Ajout de l'heure '00:00:00' aux lignes correspondantes car le chargement des données a transformé la valeur en NA.
-
-Pour faciliter les analyses et graphiques :
-- Ajout de la variable `Hour_posix` pour avoir la vraie heure chronologique.
-- Ajout de la variable `Month_char` avec les noms des mois en variable catégorielles.
-- Transformation des variable `Year`, `Month` et `Day` en variables catégorielles.
-
+- Séparation de la variable `timestamp` en `Date` et en `Year`, `Month`,
+  `Day` et `Hour` en variables catégorielles.
+- Ajout de la variable `Month_char` avec les noms des mois en variable
+  catégorielles.
+- Ajout de la variable `Hour_posix` pour avoir un axe temporel unique
+  pour les graphiques.
+- Ajout de la variable `Hour_num` avec les heures en nombre décimal.
 
 ```{r}
+order_months <- c("juillet", "août", "septembre", "octobre", "novembre", "décembre", "janvier")
+
 data <- df |>
-  select(-`...1`) |>
-  separate(col = `timestamp`, into = c("Date", "Hour"), sep = " ", fill="right") |>
+  select(-any_of("...1")) |>
   mutate(
-    Month_char = format(as.Date(Date), "%B")
+    Date = as.Date(timestamp),
+    Year = as.factor(year(timestamp)),
+    Month = as.factor(month(timestamp)),
+    Day = as.factor(day(timestamp)),
+    Hour = as.factor(hour(timestamp)),
+    Month_char = factor(format(timestamp, "%B"), levels = order_months),
+    Hour_posix = as.POSIXct(
+      paste("1970-01-01", format(timestamp, "%H:%M:%S")),
+      format = "%Y-%m-%d %H:%M:%S"
+    ),
+    Hour_num   = hour(timestamp) + minute(timestamp) / 60 + second(timestamp) / 3600
   ) |>
-  separate(col = `Date`, into = c("Year", "Month", "Day"), sep = "-") |>
-  mutate(
-    Hour = if_else(is.na(Hour) | Hour == "", "00:00:00", Hour)
-  )
-
-data$Hour_posix <- as.POSIXct(paste("1970-01-01", data$Hour), format = "%Y-%m-%d %H:%M:%S")
-
-data$Year <- as.factor(data$Year)
-data$Month <- as.factor(data$Month)
-mois_ordre <- c("juillet", "août", "septembre", "octobre", "novembre", "décembre", "janvier")
-data$Month_char <- factor(data$Month_char, levels = mois_ordre)
-data$Day <- as.factor(data$Day)
+  select(-any_of('timestamp'))
 ```
 
 ```{r}
-summary(data)
-head(data)
+#summary(data)
+#head(data)
+data
 ```
-
-
 
 ## Graphiques de présentation
 
@@ -100,35 +94,30 @@ i <- 127
 day_start <- 1+(i-1)*48
 day_end <- i*48
 day <- data[day_start:day_end,]
-plot(day$Hour_posix, day$value, xaxt = "n", xlab = "Heure", ylab = "Nombre de passagers")
+plot(day$Hour_posix, day$value, xaxt = "n", xlab = "Heure de la journée", ylab = "Nombre de passagers")
 axis.POSIXct(1, at = seq(min(day$Hour_posix), max(day$Hour_posix), by = "1 hour"), format = "%H:%M:%S")
 title(paste("Nombre de passagers au fil de la journée du", day$Day[1], day$Month_char[1], day$Year[1]))
 ```
 
-Nous avons bien des données fonctionnelles pour chaque journée avec des valeurs hétérogènes au fil des heures.
-Il sera intéressant de comparer les journées en fonction du nombre de passagers sur des tranches horaires (entre minuit et 6h puis entre 6h et 16h
-et entre 16h et minuit). Regardons maintenant sur toutes les journées.
+Nous avons bien des données fonctionnelles pour cette journée avec des
+valeurs hétérogènes au fil des heures.
+Regardons maintenant toutes les journées.
 
-
-### 2.Couleur par jour
+### 2.Toutes les journées
 
 ```{r}
 colors_day <- as.numeric(data$Day)
-#plot(data$Hour_posix[1:48], data$value[1:48], col=colors[1:48])
 
-
-plot(data$Hour_posix, data$value, col = colors_day, xaxt = "n", xlab = "Heure", ylab = "Nombre de passagers")
+plot(data$Hour_posix, data$value, col = colors_day, xaxt = "n", xlab = "Heure de la journée", ylab = "Nombre de passagers")
 axis.POSIXct(1, at = seq(min(data$Hour_posix), max(data$Hour_posix), by = "1 hour"), format = "%H:%M:%S")
-title("Nombre de passagers au fil de la journée (couleur par jour)")
+title("Nombre de passagers au fil de chaque journée")
 ```
 
-On remarque une forme partagée par le majorité des journées :
-Il semble y avoir plus de personnes qui prend un taxi l'après-midi (entre 12h et 20h) que le reste de la journée.
-Comparons, si possible par mois.
+On remarque une forme partagée par le majorité des journées : Il semble
+y avoir plus de personnes qui prend un taxi l'après-midi (entre 12h et
+20h) que le reste de la journée. Comparons par mois.
 
-
-CHUNCK SUIVANT PEUT-ÊTRE A ENLEVER 
-### 3.Couleur par mois
+CHUNCK SUIVANT PEUT-ÊTRE A ENLEVER \### 3.Couleur par mois
 
 ```{r}
 plot(data$Hour_posix, data$value, col = data$Month_char, xaxt = "n", xlab = "Heure", ylab = "Nombre de passagers")
@@ -143,13 +132,11 @@ legend("topright",                                     # Position ("topright", "
 title("Nombre de passagers au fil de la journée (couleur par mois)")
 ```
 
-
 ### Graphique pour chaque mois
 
 ```{r}
 # Diviser la fenêtre graphique en une grille (3 lignes x 4 colonnes)
-par(mfrow = c(3, 3), mar = c(2, 2, 2, 1))
-
+par(mfrow = c(3, 3), mar = c(2, 2, 2, 1), oma = c(0, 0, 3, 0))
 for (m in levels(data$Month_char)) {
   
   # Filtrer les données pour le mois en cours
@@ -160,45 +147,39 @@ for (m in levels(data$Month_char)) {
     plot(subset_data$Hour_posix,
          subset_data$value,
          main = m,             # Titre avec le nom du mois
-         xlab = "Heure", ylab = "Nombre de passagers",
          xaxt = "n")
     axis.POSIXct(1, at = seq(min(data$Hour_posix), max(data$Hour_posix), by = "1 hour"), format = "%H:%M:%S")
   }
 }
+mtext("Nombre de passagers au fil des journées par mois", side = 3, outer = TRUE, line = 1, cex = 1.3, font = 2)
 
 # 3. Remettre l'affichage graphique par défaut (1 seul graphique par écran)
-par(mfrow = c(1, 1))
+par(mfrow = c(1, 1), oma = c(0, 0, 0, 0))
 ```
 
-A première vue, on peut voir une forme similaire pour la majorité de chaque journée de chaque mois
-mais avec une petite baisse globalesur les mois d'hiver. Ce sera une analyse intéressante à faire dans ce projet.
-
+A première vue, on peut voir une forme similaire pour la majorité des journées pour chaque mois mais avec une petite baisse globale sur les mois d'hiver.
 
 Commençons par un lissage des données par Moindres Carrés pénalisés.
+
+
 
 ## Lissage par Moindres Carrés pénalisés
 
 ### Du tableau à l'objet fonctionnel
 
-Jusqu'ici les données sont stockées en format long, une ligne = un relevé.
-Pour l'analyse fonctionnelle il nous faut une matrice 48 × 215 : une colonne
-par journée, une ligne par instant de la journée. Chaque colonne est alors une
-courbe $X_i(t)$, $t \in [0,24]$.
+Jusqu'ici les données sont stockées en format long, une ligne = un
+relevé. Pour l'analyse fonctionnelle il nous faut une matrice 48 × 215 :
+une colonne par journée, une ligne par instant de la journée. Chaque
+colonne est alors une courbe $X_i(t)$, $t \in [0,24]$.
 
 ```{r}
-# Reconstruction d'une date complète et d'une heure numérique (0 ; 0,5 ; ... ; 23,5)
-data_fd <- data |>
-  mutate(
-    Date  = as.Date(paste(Year, Month, Day, sep = "-")),
-    heure = as.numeric(substr(Hour, 1, 2)) + as.numeric(substr(Hour, 4, 5)) / 60
-  )
 
-mat <- data_fd |>
-  select(Date, heure, value) |>
+mat <- data |>
+  select(Date, Hour_num, value) |>
   pivot_wider(names_from = Date, values_from = value) |>
-  arrange(heure)
+  arrange(Hour_num)
 
-heures <- mat$heure                 # grille : 0, 0.5, ..., 23.5
+heures <- mat$Hour_num              # grille : 0, 0.5, ..., 23.5
 Y      <- as.matrix(mat[, -1])      # 48 instants x 215 jours
 jours  <- as.Date(colnames(Y))
 
@@ -215,15 +196,13 @@ table(ifelse(week_end, "week-end", "semaine"))
 ### Principe
 
 Chaque journée n'est observée qu'en 48 instants. Pour obtenir une vraie
-fonction $X_i(t)$ définie sur tout $[0,24]$, on la développe dans une base et on estime les coefficients par
-moindres carrés pénalisés.
+fonction $X_i(t)$ définie sur tout $[0,24]$, on la développe dans une
+base et on estime les coefficients par moindres carrés pénalisés.
 
 ### Choix de la base : Fourier plutôt que B-splines
 
-Le cours lisse les températures canadiennes avec des B-splines. Ici le
-phénomène est périodique,minuit d'une journée se raccorde à minuit de la
-journée suivante, donc on doit avoir $X_i(0) = X_i(24)$. Les B-splines
-n'imposent pas cette contrainte, la base de Fourier si.
+On est en présence, a priori, de données lisses ou régulières et périodiques. Les bases de Fourier semblent donc bien adaptées pour cette situation.
+
 
 ### Choix de $\lambda$ par validation croisée généralisée (GCV)
 
@@ -257,9 +236,9 @@ taxi_fd   <- lissage$fd
 mean(lissage$df)        
 ```
 
-On obtient $\lambda_{opt} \approx 3{,}2\times 10^{-2}$, soit environ 18,4
-degrés de liberté effectifs pour 48 points par courbe, le lissage conserve
-la structure journalière tout en absorbant le bruit.
+On obtient $\lambda_{opt} \approx 3{,}2\times 10^{-2}$, soit environ
+18,4 degrés de liberté effectifs pour 48 points par courbe, le lissage
+conserve la structure journalière tout en absorbant le bruit.
 
 ### Effet du paramètre de lissage
 
@@ -299,11 +278,12 @@ matplot(gr, eval.fd(gr, taxi_fd), type = "l", lty = 1,
 lines(gr, rowMeans(eval.fd(gr, taxi_fd)), lwd = 3)
 ```
 
-Le lissage fait ressortir les motifs qui seront exploités dans la suite : creux
-nocturne vers 5h, pic de navette matinal marqué en semaine, plateau
-d'après-midi et pic du soir. Les week-ends se distinguent déjà nettement par
-une activité nocturne prolongée et l'absence de pic matinal.
+Le lissage fait ressortir les motifs qui seront exploités dans la suite
+: creux nocturne vers 5h, pic de navette matinal marqué en semaine,
+plateau d'après-midi et pic du soir. Les week-ends se distinguent déjà
+nettement par une activité nocturne prolongée et l'absence de pic
+matinal.
 
-L'objet `taxi_fd` obtenu ici sert de point de départ à **toutes** les sections
-suivantes : moyenne et variance, covariance et corrélation, ACP fonctionnelle
-et classification non supervisée.
+L'objet `taxi_fd` obtenu ici sert de point de départ à **toutes** les
+sections suivantes : moyenne et variance, covariance et corrélation, ACP
+fonctionnelle et classification non supervisée.
