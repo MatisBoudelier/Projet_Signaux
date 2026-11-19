@@ -215,6 +215,18 @@ K_opt <- nb_grid[which.min(gcv_K)]
 ```
 
 
+### Choix de `nbasis` par validation croisée généralisée (GCV)
+```{r}
+nb_grid <- seq(3, 47, by = 2)
+
+gcv_K <- sapply(nb_grid, function(K) {
+  base <- create.fourier.basis(c(0, 24), nbasis = K)
+  sum(smooth.basis(heures, Y, base)$gcv)   # somme sur toutes les courbes
+})
+K_opt <- nb_grid[which.min(gcv_K)]
+```
+
+
 ### Choix de $\lambda$ par validation croisée généralisée (GCV)
 
 ```{r}
