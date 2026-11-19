@@ -1,6 +1,6 @@
 ---
 title: "Taxi_Traffic_NYC"
-author: "Matis Boudelier and "
+author: "Matis Boudelier and Ming wei ANG"
 date: "2026-11-05"
 output: html_document
 editor_options: 
@@ -204,11 +204,22 @@ base et on estime les coefficients par moindres carrés pénalisés.
 On est en présence, a priori, de données lisses ou régulières et périodiques. Les bases de Fourier semblent donc bien adaptées pour cette situation.
 
 
+### Choix de `nbasis` par validation croisée généralisée (GCV)
+```{r}
+nb_grid <- seq(3, 47, by = 2)
+
+gcv_K <- sapply(nb_grid, function(K) {
+  base <- create.fourier.basis(c(0, 24), nbasis = K)
+  sum(smooth.basis(heures, Y, base)$gcv)   # somme sur toutes les courbes
+})
+K_opt <- nb_grid[which.min(gcv_K)]
+```
+
+
 ### Choix de $\lambda$ par validation croisée généralisée (GCV)
 
 ```{r}
-NBASIS <- 21
-base_f <- create.fourier.basis(rangeval = c(0, 24), nbasis = NBASIS)
+base_f <- create.fourier.basis(rangeval = c(0, 24), nbasis = K_opt)
 
 lambdas <- 10^seq(-6, 4, by = 0.25)
 gcv_tot <- sapply(lambdas, function(l) {
