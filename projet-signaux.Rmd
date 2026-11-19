@@ -53,7 +53,7 @@ numeric)
 - Séparation de la variable `timestamp` en `Date` et en `Year`, `Month`,
   `Day` et `Hour` en variables catégorielles.
 - Ajout de la variable `Month_char` avec les noms des mois en variable
-  catégorielles.
+  catégorielles avec les levels dans l'ordre des mois (juillet à janvier).
 - Ajout de la variable `Hour_posix` pour avoir un axe temporel unique
   pour les graphiques.
 - Ajout de la variable `Hour_num` avec les heures en nombre décimal.
@@ -167,10 +167,9 @@ Commençons par un lissage des données par Moindres Carrés pénalisés.
 
 ### Du tableau à l'objet fonctionnel
 
-Jusqu'ici les données sont stockées en format long, une ligne = un
-relevé. Pour l'analyse fonctionnelle il nous faut une matrice 48 × 215 :
-une colonne par journée, une ligne par instant de la journée. Chaque
-colonne est alors une courbe $X_i(t)$, $t \in [0,24]$.
+Jusqu'ici les données sont stockées en format long : une ligne = un relevé, donc une journée = 48 lignes.
+Pour l'analyse fonctionnelle il nous faut une matrice 48 × 215 : une colonne = journée, une ligne par instant de la journée. Chaque
+colonne est alors une courbe $X_i(t)$, $t \in \{0,0.5,...,23,23.5\}$.
 
 ```{r}
 
@@ -196,12 +195,12 @@ table(ifelse(week_end, "week-end", "semaine"))
 ### Principe
 
 Chaque journée n'est observée qu'en 48 instants. Pour obtenir une vraie
-fonction $X_i(t)$ définie sur tout $[0,24]$, on la développe dans une
+fonction $X_i(t)$ définie sur tout $[0,23.5]$, on la développe dans une
 base et on estime les coefficients par moindres carrés pénalisés.
 
 ### Choix de la base : Fourier plutôt que B-splines
 
-On est en présence, a priori, de données lisses ou régulières et périodiques. Les bases de Fourier semblent donc bien adaptées pour cette situation.
+On est en présence de données lisses ou régulières et périodiques. Les bases de Fourier semblent donc bien adaptées pour cette situation.
 
 
 ### Choix de `nbasis` par validation croisée généralisée (GCV)
