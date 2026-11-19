@@ -211,6 +211,7 @@ gcv_K <- sapply(nb_grid, function(K) {
   sum(smooth.basis(heures, Y, base)$gcv)   # somme sur toutes les courbes
 })
 K_opt <- nb_grid[which.min(gcv_K)]
+K_opt
 ```
 
 ```{r}
